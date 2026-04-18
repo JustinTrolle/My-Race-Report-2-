@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyRaceReport — Running Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Barlow:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+<style>
+:root {
+  --bg: #070b14;
+  --bg2: #0d1322;
+  --card: #111827;
+  --card2: #161f30;
+  --border: #1e2d42;
+  --border2: #253347;
+  --txt: #e8f0fe;
+  --txt2: #7b90b0;
+  --txt3: #3d5070;
+  --accent: #00d4ff;
+  --accent2: #0099cc;
+  --glow: rgba(0,212,255,0.12);
+  --z1c: #4a5568; --z2c: #3b82f6; --z3c: #10b981;
+  --z4c: #f59e0b; --z5c: #f97316; --z6c: #ef4444; --z7c: #8b5cf6;
+  --green: #10b981; --yellow: #f59e0b; --red: #ef4444; --blue: #3b82f6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden}
+::selection{background:var(--glow);color:var(--accent)}
+
+/* ─── HEADER ─── */
+.hdr{position:sticky;top:0;z-index:100;background:rgba(7,11,20,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:58px}
+.logo{display:flex;align-items:center;gap:10px;font-family:'Space Mono',monospace;font-size:15px;font-weight:700;letter-spacing:-0.02em}
+.logo-mark{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--bg)}
+.logo span{color:var(--accent)}
+.hdr-right{display:flex;gap:10px;align-items:center}
+.btn{padding:7px 16px;border-radius:7px;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .18s;letter-spacing:.01em}
+.btn-ghost{background:transparent;color:var(--txt2);border:1px solid var(--border2)}
+.btn-ghost:hover{color:var(--txt);border-color:var(--accent);background:var(--glow)}
+.btn-accent{background:var(--accent);color:var(--bg);box-shadow:0 0 20px rgba(0,212,255,.2)}
+.btn-accent:hover{background:#00eaff;box-shadow:0 0 28px rgba(0,212,255,.4)}
+.btn-sm{padding:5px 12px;font-size:12px}
+
+/* ─── LOADING ─── */
+#loading{display:none;position:fixed;inset:0;background:rgba(7,11,20,.88);z-index:500;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+.spin{width:44px;height:44px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{font-family:'Space Mono',monospace;font-size:12px;color:var(--txt2);letter-spacing:.1em}
+
+/* ─── MAIN LAYOUT ─── */
+.main{max-width:1380px;margin:0 auto;padding:32px 24px}
+
+/* ─── UPLOAD ─── */
+#upload-section{display:flex;flex-direction:column;align-items:center;min-height:calc(100vh - 58px);padding-top:80px;gap:36px}
+.hero{text-align:center;max-width:580px}
+.hero-label{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.15em;color:var(--accent);text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:8px}
+.hero-label::before,.hero-label::after{content:'';height:1px;width:32px;background:var(--accent);opacity:.4}
+.hero h1{font-size:52px;font-weight:900;line-height:1.0;letter-spacing:-.03em;margin-bottom:16px}
+.hero h1 em{font-style:normal;color:var(--accent);display:block}
+.hero p{font-size:15px;color:var(--txt2);line-height:1.7;font-weight:400}
+.upload-zone{width:100%;max-width:560px;border:1px dashed var(--border2);border-radius:20px;padding:52px 40px;text-align:center;cursor:pointer;transition:all .25s;background:var(--card);position:relative;overflow:hidden}
+.upload-zone::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,var(--glow),transparent 70%);opacity:0;transition:.3s}
+.upload-zone:hover{border-color:var(--accent);background:var(--card2)}
+.upload-zone:hover::before{opacity:1}
+.upload-zone.drag-over{border-color:var(--accent);background:var(--card2);transform:scale(1.01)}
+.upload-icon{font-size:44px;margin-bottom:16px;display:block;filter:grayscale(.3)}
+.upload-zone h3{font-size:17px;font-weight:700;margin-bottom:8px;color:var(--txt)}
+.upload-zone p{font-size:13px;color:var(--txt2);line-height:1.6}
+.upload-support{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.chip{font-family:'Space Mono',monospace;font-size:10px;padding:3px 9px;border-radius:4px;background:var(--bg2);border:1px solid var(--border);color:var(--txt3);letter-spacing:.05em}
+#file-input{display:none}
+
+/* ─── PROFILE PANEL ─── */
+.profile-panel{width:100%;max-width:560px;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.profile-head{padding:16px 24px;background:var(--card2);border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none}
+.profile-head h3{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--txt2);font-weight:400}
+.profile-head .toggle-icon{color:var(--txt3);transition:.2s;font-size:14px}
+.profile-body{padding:24px;display:none}
+.profile-body.open{display:block}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fgrp{display:flex;flex-direction:column;gap:5px}
+.fgrp label{font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em}
+.fgrp input,.fgrp select{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--txt);font-family:'Barlow',sans-serif;font-size:14px;transition:border .2s;width:100%}
+.fgrp input:focus,.fgrp select:focus{outline:none;border-color:var(--accent)}
+.fgrp .fhint{font-size:10px;color:var(--txt3);margin-top:2px}
+.profile-footer{margin-top:16px;display:flex;gap:10px}
+
+/* ─── REPORT ─── */
+#report-section{display:none}
+.report-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;gap:16px;flex-wrap:wrap}
+.report-hdr h1{font-size:28px;font-weight:900;letter-spacing:-.02em}
+.report-hdr h1 span{color:var(--accent)}
+.session-meta{font-family:'Space Mono',monospace;font-size:11px;color:var(--txt2);margin-top:6px;letter-spacing:.04em}
+
+/* ─── STAT CARDS ─── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px;margin-bottom:28px}
+.scard{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 16px;position:relative;overflow:hidden;transition:.2s}
+.scard:hover{border-color:var(--border2);background:var(--card2)}
+.scard::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--accent);opacity:0;transition:.2s}
+.scard:hover::after{opacity:.5}
+.scard-label{font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.scard-value{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:var(--txt);line-height:1;margin-bottom:4px}
+.scard-unit{font-size:11px;color:var(--txt3);font-weight:500}
+.scard-sub{font-size:11px;color:var(--txt2);margin-top:6px}
+.scard.accent-card{background:linear-gradient(135deg,rgba(0,212,255,.08) 0%,var(--card) 60%);border-color:rgba(0,212,255,.25)}
+.scard.accent-card .scard-value{color:var(--accent)}
+
+/* ─── CARDS ─── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:24px}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.card-title{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--txt2);display:flex;align-items:center;gap:8px}
+.card-title .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.card-badge{font-family:'Space Mono',monospace;font-size:10px;padding:3px 10px;border-radius:4px;letter-spacing:.04em}
+.badge-good{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.2)}
+.badge-warn{background:rgba(245,158,11,.12);color:var(--yellow);border:1px solid rgba(245,158,11,.2)}
+.badge-bad{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+
+/* ─── GRID LAYOUTS ─── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:24px}
+.g2>.card,.g3>.card{margin-bottom:0}
+
+/* ─── CHART WRAPPERS ─── */
+.cw{position:relative;height:200px}
+.cw-lg{position:relative;height:260px}
+.cw-sm{position:relative;height:155px}
+
+/* ─── ZONE BARS ─── */
+.zone-bars{margin-top:18px}
+.zbar-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.zbar-label{font-family:'Space Mono',monospace;font-size:10px;color:var(--txt2);width:52px;flex-shrink:0;letter-spacing:.04em}
+.zbar-track{flex:1;height:7px;background:var(--bg2);border-radius:4px;overflow:hidden}
+.zbar-fill{height:100%;border-radius:4px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.zbar-pct{font-family:'Space Mono',monospace;font-size:10px;color:var(--txt2);width:36px;text-align:right;flex-shrink:0}
+.zbar-time{font-size:10px;color:var(--txt3);width:38px;text-align:right;flex-shrink:0}
+
+/* ─── SECTION HEADER ─── */
+.sec-hdr{margin:36px 0 20px;display:flex;align-items:baseline;gap:14px}
+.sec-hdr h2{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.sec-hdr-line{flex:1;height:1px;background:var(--border)}
+.sec-hdr-sub{font-size:13px;color:var(--txt2);margin-top:4px;margin-bottom:20px}
+
+/* ─── TABLE ─── */
+.tbl-wrap{overflow-x:auto;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
+th{text-align:left;padding:9px 12px;font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border)}
+td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--txt2);font-family:'Space Mono',monospace;font-size:12px}
+tr:hover td{background:rgba(255,255,255,.015);color:var(--txt)}
+td.hl{color:var(--txt);font-weight:700}
+td.pos-split{color:var(--red)}
+td.neg-split{color:var(--green)}
+td.best{color:var(--accent)}
+
+/* ─── FLAGS / INSIGHTS ─── */
+.flag{display:flex;gap:14px;padding:16px 18px;border-radius:10px;margin-bottom:10px;border-left:3px solid}
+.flag-warn{background:rgba(245,158,11,.06);border-color:var(--yellow)}
+.flag-bad{background:rgba(239,68,68,.06);border-color:var(--red)}
+.flag-good{background:rgba(16,185,129,.06);border-color:var(--green)}
+.flag-info{background:rgba(59,130,246,.06);border-color:var(--blue)}
+.flag-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.flag-body h4{font-size:13px;font-weight:700;color:var(--txt);margin-bottom:4px}
+.flag-body p{font-size:12px;color:var(--txt2);line-height:1.7}
+
+/* ─── SPLIT COMPARE ─── */
+.split-halves{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+.half-box{border-radius:12px;padding:20px;text-align:center;background:var(--bg2);border:1px solid var(--border)}
+.half-box h4{font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;font-family:'Space Mono',monospace}
+.half-box .big{font-family:'Space Mono',monospace;font-size:26px;font-weight:700;margin-bottom:4px}
+.half-box .sub{font-size:11px;color:var(--txt2)}
+.split-verdict{text-align:center;margin-top:16px;font-size:14px;font-weight:700}
+
+/* ─── BIO COMPARE ─── */
+.bio-tbl th,.bio-tbl td{padding:10px 14px}
+.bio-tbl .chg-good{color:var(--green)}
+.bio-tbl .chg-bad{color:var(--red)}
+.bio-tbl .chg-neutral{color:var(--txt2)}
+.trend-up::after{content:' ↑';color:var(--red)}
+.trend-down::after{content:' ↓';color:var(--green)}
+.trend-dn-bad::after{content:' ↓';color:var(--red)}
+
+/* ─── COACHING REPORT ─── */
+.coaching-block{margin-bottom:28px}
+.coaching-block h3{font-size:15px;font-weight:800;color:var(--txt);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);letter-spacing:-.01em}
+.coaching-block p{font-size:13px;color:var(--txt2);line-height:1.85;margin-bottom:8px}
+.coaching-block ul{padding-left:18px;margin-top:6px}
+.coaching-block li{font-size:13px;color:var(--txt2);line-height:1.85;margin-bottom:4px}
+.coaching-block li strong{color:var(--txt);font-weight:700}
+.pathway-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-top:12px}
+.pathway-box .pw-label{font-family:'Space Mono',monospace;font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.pathway-box .pw-items{display:flex;flex-direction:column;gap:6px}
+.pathway-box .pw-item{display:flex;gap:10px;font-size:12px;color:var(--txt2);line-height:1.5}
+.pathway-box .pw-num{font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);flex-shrink:0;font-weight:700}
+
+/* ─── DECOUPLING ─── */
+.decouple-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:16px}
+.decouple-box{background:var(--bg2);border-radius:10px;padding:18px;border:1px solid var(--border)}
+.decouple-box h4{font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;font-family:'Space Mono',monospace}
+.decouple-box .dc-val{font-family:'Space Mono',monospace;font-size:28px;font-weight:700;margin-bottom:4px}
+.decouple-box .dc-sub{font-size:11px;color:var(--txt2)}
+.dc-green{color:var(--green)} .dc-yellow{color:var(--yellow)} .dc-red{color:var(--red)}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:900px){
+  .g2,.g3{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:repeat(3,1fr)}
+  .decouple-grid{grid-template-columns:1fr}
+  .split-halves{grid-template-columns:1fr}
+  .hero h1{font-size:36px}
+}
+@media(max-width:600px){
+  .main{padding:20px 14px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .hdr{padding:0 16px}
+  .pgrid{grid-template-columns:1fr}
+}
+
+/* ─── CHART DARK DEFAULTS ─── */
+canvas{display:block}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spin"></div>
+  <div class="load-txt">ANALYSING RUN DATA</div>
+</div>
+
+<header class="hdr">
+  <div class="logo">
+    <div class="logo-mark">▶</div>
+    My<span>Race</span>Report
+  </div>
+  <div class="hdr-right">
+    <button class="btn btn-ghost btn-sm" onclick="toggleProfile()">⚙ Profile</button>
+    <button class="btn btn-accent btn-sm" onclick="document.getElementById('file-input').click()">+ Upload FIT File</button>
+  </div>
+</header>
+
+<input type="file" id="file-input" accept=".fit" onchange="handleFile(event)">
+
+<main class="main">
+
+<!-- ═══════════ UPLOAD SECTION ═══════════ -->
+<section id="upload-section">
+
+  <div class="hero">
+    <div class="hero-label">Running Intelligence Platform</div>
+    <h1>Decode<em>Every Run.</em></h1>
+    <p>Upload a FIT file from any Garmin, Stryd, Polar or Coros device and get an instant deep-dive: pacing, biomechanics, heart rate zones, fatigue patterns, and a personalised coaching report.</p>
+  </div>
+
+  <div id="drop-zone" class="upload-zone"
+    onclick="document.getElementById('file-input').click()"
+    ondragover="handleDragOver(event)"
+    ondragleave="handleDragLeave(event)"
+    ondrop="handleDrop(event)">
+    <span class="upload-icon">🏃</span>
+    <h3>Drop your .FIT file here</h3>
+    <p>Or click to browse your files</p>
+    <div class="upload-support">
+      <span class="chip">GARMIN</span><span class="chip">STRYD</span>
+      <span class="chip">POLAR</span><span class="chip">COROS</span>
+      <span class="chip">SUUNTO</span>
+    </div>
+  </div>
+
+  <div class="profile-panel">
+    <div class="profile-head" onclick="toggleProfile()">
+      <h3>⚙ &nbsp;Athlete Profile — zones calculated from these values</h3>
+      <span class="toggle-icon" id="profile-toggle">▼</span>
+    </div>
+    <div class="profile-body open" id="profile-body">
+      <div class="pgrid">
+        <div class="fgrp">
+          <label>Athlete Name</label>
+          <input type="text" id="p-name" value="Athlete">
+        </div>
+        <div class="fgrp">
+          <label>Age</label>
+          <input type="number" id="p-age" value="25" min="14" max="80">
+        </div>
+        <div class="fgrp">
+          <label>LTHR (bpm)</label>
+          <input type="number" id="p-lthr" value="160" min="120" max="210">
+          <span class="fhint">Heart rate at LT2 — most important zone anchor</span>
+        </div>
+        <div class="fgrp">
+          <label>Max HR (bpm)</label>
+          <input type="number" id="p-maxhr" value="200" min="150" max="220">
+        </div>
+        <div class="fgrp">
+          <label>LT2 Run Power (W)</label>
+          <input type="number" id="p-lt2w" value="381" min="100" max="800">
+          <span class="fhint">Stryd FTP / threshold power</span>
+        </div>
+        <div class="fgrp">
+          <label>TTE at LT2 (min)</label>
+          <input type="number" id="p-tte" value="34" min="10" max="90">
+          <span class="fhint">Time to exhaustion at threshold power</span>
+        </div>
+        <div class="fgrp">
+          <label>Weight (kg)</label>
+          <input type="number" id="p-weight" value="74.8" min="40" max="150" step="0.1">
+        </div>
+        <div class="fgrp">
+          <label>Height (cm)</label>
+          <input type="number" id="p-height" value="177.8" min="140" max="220" step="0.1">
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ═══════════ REPORT SECTION ═══════════ -->
+<section id="report-section">
+
+  <div class="report-hdr">
+    <div>
+      <h1 id="rpt-title">Session <span>Analysis</span></h1>
+      <div class="session-meta" id="rpt-meta"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div id="rpt-device-badge" class="chip" style="font-size:11px;padding:5px 12px;"></div>
+      <button class="btn btn-ghost btn-sm" onclick="resetReport()">↑ New File</button>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stats-grid" id="stats-grid"></div>
+
+  <!-- PERFORMANCE TIMELINE -->
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Performance Timeline — Pace & Heart Rate</div>
+      <div id="timeline-badge" class="card-badge"></div>
+    </div>
+    <div class="cw-lg"><canvas id="ch-timeline"></canvas></div>
+  </div>
+
+  <!-- POWER TIMELINE (shown if power data) -->
+  <div class="card" id="power-card" style="display:none">
+    <div class="card-hdr">
+      <div class="card-title"><span class="dot" style="background:#f97316"></span>Power Timeline — Watts over Distance</div>
+      <div id="power-badge" class="card-badge"></div>
+    </div>
+    <div class="cw-lg"><canvas id="ch-power"></canvas></div>
+  </div>
+
+  <!-- ZONE DISTRIBUTION -->
+  <div class="g2">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-hdr">
+        <div class="card-title"><span class="dot" style="background:#ef4444"></span>Heart Rate Zones</div>
+        <div id="hr-zone-badge" class="card-badge"></div>
+      </div>
+      <div class="cw-sm"><canvas id="ch-hr-zones"></canvas></div>
+      <div class="zone-bars" id="hr-zone-bars"></div>
+    </div>
+    <div class="card" id="pwr-zone-card" style="margin-bottom:0;display:none">
+      <div class="card-hdr">
+        <div class="card-title"><span class="dot" style="background:#f97316"></span>Power Zones</div>
+        <div id="pwr-zone-badge" class="card-badge"></div>
+      </div>
+      <div class="cw-sm"><canvas id="ch-pwr-zones"></canvas></div>
+      <div class="zone-bars" id="pwr-zone-bars"></div>
+    </div>
+  </div>
+
+  <!-- SPLIT ANALYSIS -->
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title"><span class="dot" style="background:#3b82f6"></span>Pacing & Split Analysis</div>
+      <div id="split-badge" class="card-badge"></div>
+    </div>
+    <div id="split-content"></div>
+  </div>
+
+  <!-- LAP SPLITS TABLE -->
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title"><span class="dot" style="background:var(--txt3)"></span>Lap Splits</div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Dist</th><th>Time</th><th>Avg Pace</th>
+            <th>Avg HR</th><th>Avg Power</th><th>Cadence</th><th>Ascent</th>
+          </tr>
+        </thead>
+        <tbody id="lap-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- BIOMECHANICS -->
+  <div class="sec-hdr">
+    <h2>Biomechanics</h2>
+    <div class="sec-hdr-line"></div>
+  </div>
+  <div class="sec-hdr-sub">Second-by-second mechanical data — changes in these metrics signal fatigue, form breakdown, and efficiency shifts</div>
+
+  <div class="g2">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-hdr">
+        <div class="card-title"><span class="dot" style="background:#10b981"></span>Cadence (spm)</div>
+        <div id="cadence-badge" class="card-badge"></div>
+      </div>
+      <div class="cw"><canvas id="ch-cadence"></canvas></div>
+    </div>
+    <div class="card" id="gct-card" style="margin-bottom:0">
+      <div class="card-hdr">
+        <div class="card-title"><span class="dot" style="background:#3b82f6"></span>Ground Contact Time (ms)</div>
+        <div id="gct-badge" class="card-badge"></div>
+      </div>
+      <div class="cw"><canvas id="ch-gct"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g2" style="margin-top:20px">
+    <div class="card" id="vo-card" style="margin-bottom:0">
+      <div class="card-hdr">
+        <div class="card-title"><span class="dot" style="background:#8b5cf6"></span>Vertical Oscillation (cm)</div>
+        <div id="vo-badge" class="card-badge"></div>
+      </div>
+      <div class="cw"><canvas id="ch-vo"></canvas></div>
+    </div>
+    <div class="card" id="vr-card" style="margin-bottom:0">
+      <div class="card-hdr">
+        <div class="card-title"><span class="dot" style="background:#f59e0b"></span>Vertical Ratio (%)</div>
+        <div id="vr-badge" class="card-badge"></div>
+      </div>
+      <div class="cw"><canvas id="ch-vr"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g2" id="stryd-bio-row" style="margin-top:20px;display:none">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-hdr">
+        <div class="card-title"><span class="dot" style="background:#00d4ff"></span>Leg Spring Stiffness (kN/m)</div>
+        <div id="lss-badge" class="card-badge"></div>
+      </div>
+      <div class="cw"><canvas id="ch-lss"></canvas></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-hdr">
+        <div class="card-title"><span class="dot" style="background:#ef4444"></span>Impact Loading Rate (BW/s)</div>
+        <div id="ilr-badge" class="card-badge"></div>
+      </div>
+      <div class="cw"><canvas id="ch-ilr"></canvas></div>
+    </div>
+  </div>
+
+  <!-- BIO COMPARE TABLE -->
+  <div class="card" style="margin-top:20px">
+    <div class="card-hdr">
+      <div class="card-title"><span class="dot" style="background:var(--txt3)"></span>Biomechanics — First Third vs Last Third</div>
+    </div>
+    <div class="tbl-wrap" id="bio-compare"></div>
+  </div>
+
+  <!-- FATIGUE & DECOUPLING -->
+  <div class="card" style="margin-top:8px">
+    <div class="card-hdr">
+      <div class="card-title"><span class="dot" style="background:#f59e0b"></span>Fatigue & Aerobic Decoupling</div>
+    </div>
+    <div id="decoupling-section"></div>
+  </div>
+
+  <!-- COACHING REPORT -->
+  <div class="card" style="margin-top:8px;border-color:rgba(0,212,255,.2);background:linear-gradient(135deg,rgba(0,212,255,.04) 0%,var(--card) 50%)">
+    <div class="card-hdr">
+      <div class="card-title" style="color:var(--accent)"><span class="dot" style="background:var(--accent)"></span>Coaching Report & Improvement Pathways</div>
+    </div>
+    <div id="coaching-report"></div>
+  </div>
+
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/fit-file-parser@1.9.1/dist/fit-file-parser.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════
+//  CONSTANTS & HELPERS
+// ══════════════════════════════════════════════════════
+const ZONE_COLORS = ['#4a5568','#3b82f6','#10b981','#f59e0b','#f97316','#ef4444','#8b5cf6'];
+const ZONE_NAMES  = ['Z1 Recovery','Z2 Aerobic','Z3 Tempo','Z4 Threshold','Z5 VO₂Max','Z6 Anaerobic','Z7 Neuro'];
+const HR_PCT  = [[0,.82],[.82,.89],[.89,.94],[.94,.99],[.99,1.02],[1.02,1.06],[1.06,99]];
+const PWR_PCT = [[0,.55],[.55,.75],[.75,.90],[.90,1.05],[1.05,1.20],[1.20,1.50],[1.50,99]];
+
+let charts = {};
+let activeSession = null;
+
+function getProfile() {
+  return {
+    name:   document.getElementById('p-name').value || 'Athlete',
+    age:    +document.getElementById('p-age').value || 25,
+    lthr:   +document.getElementById('p-lthr').value || 160,
+    maxHR:  +document.getElementById('p-maxhr').value || 200,
+    lt2w:   +document.getElementById('p-lt2w').value || 381,
+    tte:    +document.getElementById('p-tte').value || 34,
+    weight: +document.getElementById('p-weight').value || 74.8,
+    height: +document.getElementById('p-height').value || 177.8,
+  };
+}
+
+function getHRZone(hr, lthr) {
+  for (let i = 0; i < HR_PCT.length; i++) {
+    if (hr >= lthr * HR_PCT[i][0] && hr < lthr * HR_PCT[i][1]) return i;
+  }
+  return 6;
+}
+function getPwrZone(w, lt2) {
+  for (let i = 0; i < PWR_PCT.length; i++) {
+    if (w >= lt2 * PWR_PCT[i][0] && w < lt2 * PWR_PCT[i][1]) return i;
+  }
+  return 6;
+}
+function getHRColor(hr, lthr) { return ZONE_COLORS[getHRZone(hr, lthr)]; }
+function getPwrColor(w, lt2)  { return ZONE_COLORS[getPwrZone(w, lt2)]; }
+
+function formatPace(kmh) {
+  if (!kmh || kmh < 0.5) return '--:--';
+  const mpk = 60 / kmh;
+  const m = Math.floor(mpk), s = Math.round((mpk - m) * 60);
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+function formatTime(secs) {
+  const h = Math.floor(secs/3600), m = Math.floor((secs%3600)/60), s = Math.floor(secs%60);
+  return h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
+}
+function formatDist(km) { return km >= 10 ? `${km.toFixed(1)} km` : `${km.toFixed(2)} km`; }
+function avg(arr) { const v = arr.filter(x=>x!=null&&!isNaN(x)); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; }
+function safe(v, def=0) { return (v != null && !isNaN(v)) ? v : def; }
+
+function downsample(arr, n=400) {
+  if (!arr || arr.length <= n) return arr||[];
+  const step = arr.length/n;
+  return Array.from({length:n}, (_,i) => arr[Math.floor(i*step)]);
+}
+function rollingAvg(arr, w=7) {
+  return arr.map((_,i) => {
+    const s = arr.slice(Math.max(0,i-w), i+w+1).filter(v=>v!=null&&!isNaN(v));
+    return s.length ? s.reduce((a,b)=>a+b,0)/s.length : null;
+  });
+}
+
+function getDevField(rec, name) {
+  if (rec[name] !== undefined && rec[name] !== null) return rec[name];
+  const snake = name.toLowerCase().replace(/\s+/g,'_');
+  if (rec[snake] !== undefined && rec[snake] !== null) return rec[snake];
+  const camel = name.replace(/\s+(.)/g,(_,c)=>c.toUpperCase());
+  const cc = camel.charAt(0).toLowerCase()+camel.slice(1);
+  if (rec[cc] !== undefined && rec[cc] !== null) return rec[cc];
+  if (rec.developer_fields) {
+    for (const df of rec.developer_fields) {
+      if (df.field_name === name || df.field_name === snake) return df.value;
+    }
+  }
+  return null;
+}
+
+// ══════════════════════════════════════════════════════
+//  FILE HANDLING
+// ══════════════════════════════════════════════════════
+function handleDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function handleDragLeave()  { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function handleDrop(e)      { e.preventDefault(); handleDragLeave(); const f = e.dataTransfer.files[0]; if (f) processFile(f); }
+function handleFile(e)      { const f = e.target.files[0]; if (f) processFile(f); }
+
+function processFile(file) {
+  if (!file.name.toLowerCase().endsWith('.fit')) {
+    alert('Please upload a .fit file from your GPS device.'); return;
+  }
+  showLoading();
+  const reader = new FileReader();
+  reader.onload = e => parseFIT(e.target.result, file.name);
+  reader.onerror = () => { hideLoading(); alert('Could not read file.'); };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseFIT(buffer, filename) {
+  if (typeof FitParser === 'undefined') {
+    hideLoading(); alert('FIT parser library failed to load. Please check your internet connection.'); return;
+  }
+  const parser = new FitParser({ force:true, speedUnit:'km/h', lengthUnit:'km', temperatureUnit:'celsius', elapsedRecordField:true, mode:'cascade' });
+  parser.parse(buffer, (error, data) => {
+    hideLoading();
+    if (error) { alert('Error parsing FIT file: '+error); return; }
+    try { renderReport(data, filename); }
+    catch(e) { console.error(e); alert('Error processing data: '+e.message+'\n\nCheck console for details.'); }
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  DATA EXTRACTION
+// ══════════════════════════════════════════════════════
+function extractData(data) {
+  const prof = getProfile();
+  const rawRecords = data.records || [];
+  const rawLaps    = data.laps || [];
+  const session    = (data.sessions || [])[0] || {};
+
+  // Filter moving records only (speed > 0.5 km/h)
+  const recs = rawRecords.filter(r => r.speed > 0.5 || r.enhanced_speed > 0.5);
+
+  if (recs.length < 10) throw new Error('Not enough running data found in file. Make sure this is a running activity.');
+
+  // Build normalized record array
+  const records = recs.map(r => {
+    const spd = r.enhanced_speed || r.speed || 0; // km/h
+    const dist = r.distance || 0; // km
+    const hr   = r.heart_rate || null;
+    const pwr  = r.power || null;
+    const rawCad = r.cadence || null;
+    const cad = rawCad ? (rawCad > 130 ? rawCad : rawCad * 2) : null; // normalize to spm
+    const gct  = r.stance_time || null; // ms
+    const sl   = r.step_length ? r.step_length/10 : null; // mm → cm
+    const vo   = r.vertical_oscillation ? r.vertical_oscillation/10 : null; // mm → cm
+    const vr   = r.vertical_ratio || null; // %
+    const lss  = getDevField(r, 'Leg Spring Stiffness');
+    const ilr  = getDevField(r, 'Impact Loading Rate');
+    const formPwr = getDevField(r, 'Form Power');
+    const airPwr  = getDevField(r, 'Air Power');
+    const elapsed = r.elapsed_time || 0;
+    return { spd, dist, hr, pwr, cad, gct, sl, vo, vr, lss, ilr, formPwr, airPwr, elapsed };
+  });
+
+  // Availability flags
+  const hasHR    = records.some(r=>r.hr>0);
+  const hasPwr   = records.some(r=>r.pwr>0 && r.pwr<2000);
+  const hasGCT   = records.some(r=>r.gct>0 && r.gct<1000);
+  const hasVO    = records.some(r=>r.vo>0);
+  const hasLSS   = records.some(r=>r.lss>0);
+  const hasILR   = records.some(r=>r.ilr>0);
+  const hasStryd = hasPwr && (hasLSS || hasILR || records.some(r=>r.formPwr>0));
+
+  // Session stats
+  const totalDist = session.total_distance || (records.length ? records[records.length-1].dist : 0);
+  const totalTime = session.total_elapsed_time || session.total_timer_time || 0;
+  const avgSpdKmh = session.avg_speed || session.enhanced_avg_speed || avg(records.map(r=>r.spd));
+  const maxSpdKmh = session.max_speed || session.enhanced_max_speed || Math.max(...records.map(r=>r.spd));
+  const avgHR     = hasHR  ? (session.avg_heart_rate || avg(records.map(r=>r.hr))) : null;
+  const maxHR     = hasHR  ? (session.max_heart_rate || Math.max(...records.filter(r=>r.hr).map(r=>r.hr))) : null;
+  const avgPwr    = hasPwr ? (session.avg_power || avg(records.map(r=>r.pwr))) : null;
+  const maxPwr    = hasPwr ? (session.max_power || Math.max(...records.filter(r=>r.pwr).map(r=>r.pwr))) : null;
+  const avgCad    = avg(records.filter(r=>r.cad).map(r=>r.cad));
+  const avgGCT    = hasGCT ? avg(records.filter(r=>r.gct).map(r=>r.gct)) : null;
+  const avgVO     = hasVO  ? avg(records.filter(r=>r.vo).map(r=>r.vo)) : null;
+  const avgVR     = records.some(r=>r.vr) ? avg(records.filter(r=>r.vr).map(r=>r.vr)) : null;
+  const avgLSS    = hasLSS ? avg(records.filter(r=>r.lss).map(r=>r.lss)) : null;
+  const avgILR    = hasILR ? avg(records.filter(r=>r.ilr).map(r=>r.ilr)) : null;
+  const totalAscent  = session.total_ascent  || rawLaps.reduce((a,l)=>a+(l.total_ascent||0),0);
+  const totalDescent = session.total_descent || rawLaps.reduce((a,l)=>a+(l.total_descent||0),0);
+  const calories  = session.total_calories || null;
+  const startTime = session.start_time || new Date();
+
+  // Laps
+  const laps = rawLaps.map((l,i) => {
+    const lapSpd = l.enhanced_avg_speed || l.avg_speed || 0;
+    const lapCad = l.avg_running_cadence || l.avg_cadence || 0;
+    return {
+      num: i+1,
+      dist: l.total_distance || 0,
+      time: l.total_elapsed_time || l.total_timer_time || 0,
+      spd: lapSpd,
+      hr:  l.avg_heart_rate || null,
+      pwr: l.avg_power || null,
+      cad: lapCad > 130 ? lapCad : lapCad * 2,
+      ascent: l.total_ascent || 0,
+    };
+  });
+
+  // Zone time calculation
+  function zoneTime(vals, getFn, ref) {
+    const counts = Array(7).fill(0);
+    vals.filter(v=>v!=null&&!isNaN(v)&&v>0).forEach(v => counts[getFn(v, ref)]++);
+    const total = counts.reduce((a,b)=>a+b,0) || 1;
+    return counts.map(c => ({ count:c, pct: c/total*100, time: c })); // 'time' here is in record-seconds
+  }
+  const hrZones  = hasHR  ? zoneTime(records.map(r=>r.hr), getHRZone, prof.lthr) : null;
+  const pwrZones = hasPwr ? zoneTime(records.map(r=>r.pwr).filter(v=>v&&v<2000), getPwrZone, prof.lt2w) : null;
+
+  // ── SPLIT ANALYSIS ──
+  const midIdx = Math.floor(records.length / 2);
+  const h1 = records.slice(0, midIdx), h2 = records.slice(midIdx);
+  const h1Spd = avg(h1.map(r=>r.spd)), h2Spd = avg(h2.map(r=>r.spd));
+  const h1Pace = 60/h1Spd, h2Pace = 60/h2Spd;
+  const splitRatio = h2Pace / h1Pace; // >1 = positive split (second half slower)
+  const h1HR = hasHR ? avg(h1.filter(r=>r.hr).map(r=>r.hr)) : null;
+  const h2HR = hasHR ? avg(h2.filter(r=>r.hr).map(r=>r.hr)) : null;
+  const h1EF = (hasHR && h1HR) ? h1Spd/h1HR : null; // Efficiency Factor
+  const h2EF = (hasHR && h2HR) ? h2Spd/h2HR : null;
+  const decouplingPct = (h1EF && h2EF) ? ((h1EF - h2EF) / h1EF * 100) : null;
+
+  // ── BIOMECHANICS FATIGUE: first/last third ──
+  const third = Math.floor(records.length / 3);
+  const t1 = records.slice(0, third), t3 = records.slice(2*third);
+  function bioStat(key) {
+    const v1 = avg(t1.filter(r=>r[key]!=null&&r[key]>0).map(r=>r[key]));
+    const v3 = avg(t3.filter(r=>r[key]!=null&&r[key]>0).map(r=>r[key]));
+    const chg = (v1 && v3) ? ((v3-v1)/v1*100) : null;
+    return { v1, v3, chg };
+  }
+  const bioCompare = {
+    cad: bioStat('cad'),
+    gct: bioStat('gct'),
+    vo:  bioStat('vo'),
+    vr:  bioStat('vr'),
+    lss: bioStat('lss'),
+    ilr: bioStat('ilr'),
+    spd: bioStat('spd'),
+  };
+
+  // Pace variability (coefficient of variation)
+  const paceArr = records.map(r=>r.spd>0.5 ? 60/r.spd : null).filter(v=>v&&v<25);
+  const paceAvg2 = avg(paceArr);
+  const paceSD = Math.sqrt(paceArr.reduce((a,v)=>(a + Math.pow(v-paceAvg2,2)),0)/paceArr.length);
+  const paceCV = paceSD/paceAvg2*100;
+
+  return {
+    records, laps, session, prof,
+    hasHR, hasPwr, hasGCT, hasVO, hasLSS, hasILR, hasStryd,
+    totalDist, totalTime, avgSpdKmh, maxSpdKmh, avgHR, maxHR,
+    avgPwr, maxPwr, avgCad, avgGCT, avgVO, avgVR, avgLSS, avgILR,
+    totalAscent, totalDescent, calories, startTime,
+    hrZones, pwrZones,
+    h1Pace, h2Pace, splitRatio, h1HR, h2HR, decouplingPct,
+    bioCompare, paceCV,
+  };
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER REPORT
+// ══════════════════════════════════════════════════════
+function renderReport(data, filename) {
+  const d = extractData(data);
+  activeSession = d;
+  const prof = d.prof;
+
+  // Switch views
+  document.getElementById('upload-section').style.display = 'none';
+  const rpt = document.getElementById('report-section');
+  rpt.style.display = 'block';
+
+  // Destroy old charts
+  Object.values(charts).forEach(c => { try{c.destroy()}catch(e){} });
+  charts = {};
+
+  // Title & meta
+  const dt = new Date(d.startTime);
+  const dtStr = isNaN(dt) ? '' : dt.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('rpt-title').innerHTML = `Session <span>Analysis</span>`;
+  document.getElementById('rpt-meta').textContent = `${dtStr}  ·  ${prof.name}  ·  ${formatDist(d.totalDist)}  ·  ${formatTime(d.totalTime)}`;
+  document.getElementById('rpt-device-badge').textContent = d.hasStryd ? 'STRYD' : 'GPS WATCH';
+
+  buildStatCards(d, prof);
+  buildTimeline(d, prof);
+  buildPowerChart(d, prof);
+  buildZoneBars(d, prof);
+  buildSplitSection(d);
+  buildLapTable(d, prof);
+  buildBioCharts(d, prof);
+  buildBioCompare(d);
+  buildDecouplingSection(d);
+  buildCoachingReport(d, prof);
+}
+
+// ══════════════════════════════════════════════════════
+//  STAT CARDS
+// ══════════════════════════════════════════════════════
+function buildStatCards(d, prof) {
+  const el = document.getElementById('stats-grid');
+  const pace = d.avgSpdKmh ? 60/d.avgSpdKmh : null;
+  const cards = [
+    { label:'Distance',  val: formatDist(d.totalDist),       unit:'',      sub:'Total distance',              accent: true },
+    { label:'Duration',  val: formatTime(d.totalTime),        unit:'',      sub:'Moving time' },
+    { label:'Avg Pace',  val: pace ? formatPace(d.avgSpdKmh) : '--:--', unit:'/km', sub:`Max ${formatPace(d.maxSpdKmh)}` },
+    { label:'Avg HR',    val: d.avgHR ? Math.round(d.avgHR)+'': '--',  unit:'bpm', sub:`Max ${d.maxHR||'--'} bpm`, show: d.hasHR },
+    { label:'Avg Power', val: d.avgPwr ? Math.round(d.avgPwr)+'': '--', unit:'W',   sub:`Max ${d.maxPwr ? Math.round(d.maxPwr) : '--'} W`, show: d.hasPwr },
+    { label:'Cadence',   val: d.avgCad ? Math.round(d.avgCad)+'' : '--', unit:'spm', sub:'Avg stride rate' },
+    { label:'Elevation', val: `+${Math.round(d.totalAscent)}`, unit:'m', sub:`-${Math.round(d.totalDescent)} m` },
+    { label:'Avg GCT',   val: d.avgGCT ? Math.round(d.avgGCT)+'' : '--', unit:'ms', sub:'Ground contact', show: d.hasGCT },
+    { label:'Avg VO',    val: d.avgVO ? d.avgVO.toFixed(1)+'' : '--', unit:'cm', sub:'Vertical oscillation', show: d.hasVO },
+    { label:'Calories',  val: d.calories ? d.calories+'' : '--', unit:'kcal', sub:'Energy expenditure' },
+    { label:'LTHR %',    val: d.avgHR ? Math.round(d.avgHR/prof.lthr*100)+'%': '--', unit:'', sub:`Avg ${Math.round(d.avgHR||0)} vs LTHR ${prof.lthr}`, show: d.hasHR },
+    { label:'LT2 Pwr %', val: d.avgPwr ? Math.round(d.avgPwr/prof.lt2w*100)+'%': '--', unit:'', sub:`Avg ${Math.round(d.avgPwr||0)}W vs LT2 ${prof.lt2w}W`, show: d.hasPwr },
+  ];
+  el.innerHTML = cards
+    .filter(c => c.show !== false)
+    .map(c => `
+      <div class="scard${c.accent?' accent-card':''}">
+        <div class="scard-label">${c.label}</div>
+        <div class="scard-value">${c.val}</div>
+        <div class="scard-unit">${c.unit}</div>
+        <div class="scard-sub">${c.sub}</div>
+      </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  PERFORMANCE TIMELINE
+// ══════════════════════════════════════════════════════
+function buildTimeline(d, prof) {
+  const recs = d.records;
+  const ds   = downsample(recs, 500);
+  const distLabels = ds.map(r => r.dist.toFixed(2));
+  const paceData   = ds.map(r => r.spd > 0.5 ? parseFloat((60/r.spd).toFixed(2)) : null);
+  const hrData     = d.hasHR ? ds.map(r => r.hr || null) : null;
+  const smoothPace = rollingAvg(paceData, 5);
+  const smoothHR   = hrData ? rollingAvg(hrData, 5) : null;
+
+  const sets = [{
+    label: 'Pace (min/km)',
+    data: smoothPace,
+    yAxisID: 'y-pace',
+    borderColor: '#3b82f6',
+    borderWidth: 2,
+    pointRadius: 0,
+    tension: 0.3,
+    fill: false,
+    spanGaps: true,
+    segment: {
+      borderColor: ctx => {
+        const p = ctx.p0.parsed.y;
+        if (!p) return '#3b82f6';
+        if (p < 4.0) return '#8b5cf6';
+        if (p < 4.5) return '#10b981';
+        if (p < 5.5) return '#3b82f6';
+        if (p < 7.0) return '#f59e0b';
+        return '#64748b';
+      }
+    }
+  }];
+
+  if (d.hasHR) sets.push({
+    label: 'Heart Rate (bpm)',
+    data: smoothHR,
+    yAxisID: 'y-hr',
+    borderWidth: 1.5,
+    pointRadius: 0,
+    tension: 0.3,
+    fill: false,
+    spanGaps: true,
+    segment: {
+      borderColor: ctx => getHRColor(ctx.p0.parsed.y, prof.lthr)
+    }
+  });
+
+  const ctx = document.getElementById('ch-timeline').getContext('2d');
+  charts['timeline'] = new Chart(ctx, {
+    type: 'line',
+    data: { labels: distLabels, datasets: sets },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 800 },
+      interaction: { mode:'index', intersect: false },
+      plugins: {
+        legend: { display: true, position:'top', labels:{ color:'#7b90b0', font:{size:11}, boxWidth:12 } },
+        tooltip: {
+          backgroundColor:'#111827', borderColor:'#1e2d42', borderWidth:1, titleColor:'#e8f0fe', bodyColor:'#7b90b0',
+          callbacks: {
+            label: ctx => {
+              if (ctx.dataset.yAxisID === 'y-pace') {
+                const v = ctx.parsed.y;
+                return ` Pace: ${Math.floor(v)}:${String(Math.round((v%1)*60)).padStart(2,'0')}/km`;
+              }
+              return ` HR: ${Math.round(ctx.parsed.y)} bpm`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks:{ color:'#3d5070', maxTicksLimit:10, font:{size:10} }, grid:{ color:'rgba(255,255,255,.04)' } },
+        'y-pace': {
+          type:'linear', position:'left', reverse: true,
+          min: 2.5, max: 10,
+          title: { display:true, text:'Pace (min/km)', color:'#3d5070', font:{size:10} },
+          ticks: {
+            color:'#3d5070', font:{size:10},
+            callback: v => { const m=Math.floor(v); return `${m}:${String(Math.round((v-m)*60)).padStart(2,'0')}`; }
+          },
+          grid: { color:'rgba(255,255,255,.04)' }
+        },
+        'y-hr': d.hasHR ? {
+          type:'linear', position:'right',
+          min: Math.max(60, (d.avgHR||120) - 40), max: d.maxHR ? d.maxHR + 5 : 210,
+          title: { display:true, text:'HR (bpm)', color:'#3d5070', font:{size:10} },
+          ticks: { color:'#3d5070', font:{size:10} },
+          grid: { drawOnChartArea:false }
+        } : { display: false }
+      }
+    }
+  });
+
+  // Infer session type for badge
+  const avgHRPct = d.avgHR ? d.avgHR / prof.lthr * 100 : null;
+  const badge = document.getElementById('timeline-badge');
+  if (avgHRPct) {
+    if (avgHRPct < 82) { badge.textContent='Easy Run'; badge.className='card-badge badge-good'; }
+    else if (avgHRPct < 94) { badge.textContent='Aerobic/Tempo'; badge.className='card-badge badge-good'; }
+    else if (avgHRPct < 102) { badge.textContent='Threshold'; badge.className='card-badge badge-warn'; }
+    else { badge.textContent='High Intensity'; badge.className='card-badge badge-bad'; }
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  POWER CHART
+// ══════════════════════════════════════════════════════
+function buildPowerChart(d, prof) {
+  const card = document.getElementById('power-card');
+  if (!d.hasPwr) { card.style.display='none'; return; }
+  card.style.display = 'block';
+
+  const ds   = downsample(d.records, 500);
+  const distL = ds.map(r => r.dist.toFixed(2));
+  const pwrD  = rollingAvg(ds.map(r => (r.pwr && r.pwr < 2000) ? r.pwr : null), 5);
+
+  const ctx = document.getElementById('ch-power').getContext('2d');
+  charts['power'] = new Chart(ctx, {
+    type:'line',
+    data: { labels: distL, datasets:[{
+      label:'Power (W)', data: pwrD, yAxisID:'y-pwr',
+      borderWidth: 1.5, pointRadius:0, tension:.3, fill:true,
+      backgroundColor:'rgba(249,115,22,.08)',
+      spanGaps:true,
+      segment: { borderColor: ctx => getPwrColor(ctx.p0.parsed.y, prof.lt2w) }
+    }]},
+    options: {
+      responsive:true, maintainAspectRatio:false, animation:{duration:800},
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{ backgroundColor:'#111827',borderColor:'#1e2d42',borderWidth:1,titleColor:'#e8f0fe',bodyColor:'#7b90b0',
+          callbacks:{ label: ctx => ` Power: ${Math.round(ctx.parsed.y)} W` }},
+        annotation:{ annotations:{
+          lt2line:{ type:'line', yMin:prof.lt2w, yMax:prof.lt2w, borderColor:'rgba(239,68,68,.4)', borderWidth:1, borderDash:[4,4],
+            label:{ display:true, content:`LT2 ${prof.lt2w}W`, color:'#ef4444', font:{size:10}, position:'end', backgroundColor:'transparent' }}
+        }}
+      },
+      scales:{
+        x:{ ticks:{color:'#3d5070',maxTicksLimit:10,font:{size:10}}, grid:{color:'rgba(255,255,255,.04)'} },
+        'y-pwr':{ type:'linear', ticks:{color:'#3d5070',font:{size:10}}, grid:{color:'rgba(255,255,255,.04)'},
+          title:{display:true,text:'Watts',color:'#3d5070',font:{size:10}} }
+      }
+    }
+  });
+
+  const pctLT2 = d.avgPwr ? Math.round(d.avgPwr/prof.lt2w*100) : 0;
+  const badge = document.getElementById('power-badge');
+  if (pctLT2 < 75) { badge.textContent=`${pctLT2}% of LT2`; badge.className='card-badge badge-good'; }
+  else if (pctLT2 < 105) { badge.textContent=`${pctLT2}% of LT2`; badge.className='card-badge badge-warn'; }
+  else { badge.textContent=`${pctLT2}% of LT2`; badge.className='card-badge badge-bad'; }
+}
+
+// ══════════════════════════════════════════════════════
+//  ZONE DISTRIBUTION
+// ══════════════════════════════════════════════════════
+function buildZoneBars(d, prof) {
+  // HR zones
+  if (d.hrZones) {
+    const domZ = d.hrZones.reduce((a,b) => a.count>b.count?a:b);
+    const domIdx = d.hrZones.indexOf(domZ);
+    const badge = document.getElementById('hr-zone-badge');
+    badge.textContent = ZONE_NAMES[domIdx]; badge.className='card-badge badge-good';
+
+    const ctx = document.getElementById('ch-hr-zones').getContext('2d');
+    charts['hrz'] = new Chart(ctx, {
+      type:'bar',
+      data:{ labels: ZONE_NAMES, datasets:[{ data: d.hrZones.map(z=>z.pct.toFixed(1)),
+        backgroundColor: ZONE_COLORS, borderRadius:4, borderWidth:0 }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}%`},backgroundColor:'#111827',borderColor:'#1e2d42',borderWidth:1,bodyColor:'#7b90b0'}},
+        scales:{ x:{ticks:{color:'#3d5070',font:{size:9}},grid:{display:false}},
+          y:{ticks:{color:'#3d5070',font:{size:9},callback:v=>`${v}%`},grid:{color:'rgba(255,255,255,.04)'}} }}
+    });
+
+    const hrBarsEl = document.getElementById('hr-zone-bars');
+    hrBarsEl.innerHTML = d.hrZones.map((z,i) => `
+      <div class="zbar-row">
+        <div class="zbar-label">${ZONE_NAMES[i].split(' ')[0]}</div>
+        <div class="zbar-track"><div class="zbar-fill" style="width:${z.pct.toFixed(1)}%;background:${ZONE_COLORS[i]}"></div></div>
+        <div class="zbar-pct">${z.pct.toFixed(0)}%</div>
+        <div class="zbar-time">${formatTime(z.time)}</div>
+      </div>`).join('');
+  }
+
+  // Power zones
+  const pwrCard = document.getElementById('pwr-zone-card');
+  if (d.pwrZones) {
+    pwrCard.style.display = 'block';
+    const domZ2 = d.pwrZones.reduce((a,b) => a.count>b.count?a:b);
+    const domIdx2 = d.pwrZones.indexOf(domZ2);
+    const pbadge = document.getElementById('pwr-zone-badge');
+    pbadge.textContent = ZONE_NAMES[domIdx2]; pbadge.className='card-badge badge-good';
+
+    const ctx2 = document.getElementById('ch-pwr-zones').getContext('2d');
+    charts['pwrz'] = new Chart(ctx2, {
+      type:'bar',
+      data:{ labels: ZONE_NAMES, datasets:[{ data: d.pwrZones.map(z=>z.pct.toFixed(1)),
+        backgroundColor: ZONE_COLORS, borderRadius:4, borderWidth:0 }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}%`},backgroundColor:'#111827',borderColor:'#1e2d42',borderWidth:1,bodyColor:'#7b90b0'}},
+        scales:{ x:{ticks:{color:'#3d5070',font:{size:9}},grid:{display:false}},
+          y:{ticks:{color:'#3d5070',font:{size:9},callback:v=>`${v}%`},grid:{color:'rgba(255,255,255,.04)'}} }}
+    });
+
+    const pwrBarsEl = document.getElementById('pwr-zone-bars');
+    pwrBarsEl.innerHTML = d.pwrZones.map((z,i) => `
+      <div class="zbar-row">
+        <div class="zbar-label">${ZONE_NAMES[i].split(' ')[0]}</div>
+        <div class="zbar-track"><div class="zbar-fill" style="width:${z.pct.toFixed(1)}%;background:${ZONE_COLORS[i]}"></div></div>
+        <div class="zbar-pct">${z.pct.toFixed(0)}%</div>
+        <div class="zbar-time">${formatTime(z.time)}</div>
+      </div>`).join('');
+  } else {
+    pwrCard.style.display = 'none';
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  SPLIT ANALYSIS
+// ══════════════════════════════════════════════════════
+function buildSplitSection(d) {
+  const sr = d.splitRatio;
+  const pctDiff = ((sr - 1) * 100).toFixed(1);
+  const isNeg = sr < 0.99, isEven = sr >= 0.99 && sr <= 1.01;
+  const badge = document.getElementById('split-badge');
+  let verdictColor, verdictText, flagClass;
+  if (sr < 0.98)      { verdictColor='var(--green)'; verdictText='Negative Split — Excellent'; badge.textContent='NEGATIVE SPLIT'; badge.className='card-badge badge-good'; flagClass='flag-good'; }
+  else if (sr <= 1.02) { verdictColor='var(--accent)'; verdictText='Even Split — Well Controlled'; badge.textContent='EVEN SPLIT'; badge.className='card-badge badge-good'; flagClass='flag-info'; }
+  else if (sr <= 1.06) { verdictColor='var(--yellow)'; verdictText='Slight Positive Split'; badge.textContent='SLIGHT FADE'; badge.className='card-badge badge-warn'; flagClass='flag-warn'; }
+  else                 { verdictColor='var(--red)'; verdictText='Significant Positive Split'; badge.textContent='SIGNIFICANT FADE'; badge.className='card-badge badge-bad'; flagClass='flag-bad'; }
+
+  const el = document.getElementById('split-content');
+  el.innerHTML = `
+    <div class="split-halves">
+      <div class="half-box">
+        <h4>First Half</h4>
+        <div class="big" style="color:var(--accent)">${formatPace(60/d.h1Pace)}<span style="font-size:14px;color:var(--txt3)">/km</span></div>
+        <div class="sub">${d.h1HR ? 'Avg HR '+Math.round(d.h1HR)+' bpm' : 'Avg pace'}</div>
+      </div>
+      <div class="half-box">
+        <h4>Second Half</h4>
+        <div class="big" style="color:${sr>1.03?'var(--red)':'var(--txt)'}">${formatPace(60/d.h2Pace)}<span style="font-size:14px;color:var(--txt3)">/km</span></div>
+        <div class="sub">${d.h2HR ? 'Avg HR '+Math.round(d.h2HR)+' bpm' : (sr>1.02?'+'+pctDiff+'% slower':'Even')}</div>
+      </div>
+    </div>
+    <div class="split-verdict" style="color:${verdictColor}">${verdictText}</div>
+    ${sr > 1.02 ? `
+    <div style="margin-top:16px" class="flag ${flagClass}">
+      <div class="flag-icon">${sr>1.08?'🔴':'⚠️'}</div>
+      <div class="flag-body">
+        <h4>Split Ratio: ${sr.toFixed(3)} — Second half was ${pctDiff}% slower</h4>
+        <p>A split ratio above 1.02 indicates the athlete started too hard or the aerobic engine couldn't sustain the effort. 
+        ${sr>1.10 ? 'This is a significant fade — pacing needs to be the primary training focus before the next race.' : 
+          'Work on enforcing ceiling pace in training. The warm-up discipline and brick run protocols in the training plan will address this.'}
+        </p>
+      </div>
+    </div>` : ''}
+    <div style="margin-top:14px;display:flex;gap:24px;flex-wrap:wrap">
+      <div><span style="font-size:11px;color:var(--txt3);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Pace Variability (CV)</span>
+        <div style="font-family:'Space Mono',monospace;font-size:14px;color:var(--txt);margin-top:4px">${d.paceCV.toFixed(1)}%</div>
+        <div style="font-size:11px;color:var(--txt2);margin-top:2px">${d.paceCV<5?'Very Consistent':d.paceCV<10?'Moderate Variability':'High Variability'}</div>
+      </div>
+      ${d.decouplingPct != null ? `
+      <div><span style="font-size:11px;color:var(--txt3);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Aerobic Decoupling</span>
+        <div style="font-family:'Space Mono',monospace;font-size:14px;color:${d.decouplingPct<5?'var(--green)':d.decouplingPct<10?'var(--yellow)':'var(--red)'};margin-top:4px">${d.decouplingPct.toFixed(1)}%</div>
+        <div style="font-size:11px;color:var(--txt2);margin-top:2px">${d.decouplingPct<5?'Strong aerobic base':d.decouplingPct<10?'Build Z2 volume':'>10% — Aerobic base priority'}</div>
+      </div>` : ''}
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  LAP SPLITS TABLE
+// ══════════════════════════════════════════════════════
+function buildLapTable(d, prof) {
+  const tbody = document.getElementById('lap-tbody');
+  if (!d.laps.length) { tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--txt3)">No lap data available</td></tr>'; return; }
+  const bestPace = Math.max(...d.laps.filter(l=>l.spd>0).map(l=>l.spd));
+  tbody.innerHTML = d.laps.map((l,i) => {
+    const isBest = l.spd === bestPace;
+    return `<tr>
+      <td class="hl">${l.num}</td>
+      <td>${formatDist(l.dist)}</td>
+      <td>${formatTime(l.time)}</td>
+      <td class="${isBest?'best hl':''}">${formatPace(l.spd)}/km</td>
+      <td>${l.hr ? Math.round(l.hr)+' bpm' : '--'}</td>
+      <td>${l.pwr ? Math.round(l.pwr)+'W' : '--'}</td>
+      <td>${l.cad ? Math.round(l.cad)+' spm' : '--'}</td>
+      <td>${l.ascent ? '+'+Math.round(l.ascent)+'m' : '--'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  BIOMECHANICS CHARTS
+// ══════════════════════════════════════════════════════
+function buildBioChart(id, d_arr, distArr, label, color, opts={}) {
+  const smooth = rollingAvg(d_arr, 8);
+  const ds = downsample(smooth, 400);
+  const dl = downsample(distArr, 400);
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  const annotations = {};
+  if (opts.refLines) opts.refLines.forEach((rl,i)=>{
+    annotations[`ref${i}`]={ type:'line', yMin:rl.val, yMax:rl.val,
+      borderColor: rl.color||'rgba(255,255,255,.2)', borderWidth:1, borderDash:[3,4],
+      label:{ display:true, content:rl.label, color:rl.color||'rgba(255,255,255,.3)', font:{size:9}, position:'end', backgroundColor:'transparent' }};
+  });
+  charts[id] = new Chart(ctx.getContext('2d'), {
+    type:'line',
+    data:{ labels: dl.map(v=>v.toFixed(2)), datasets:[{
+      label, data: ds, borderColor: color, borderWidth:1.5, pointRadius:0,
+      tension:.35, fill: opts.fill || false, backgroundColor: opts.fillBg||'transparent', spanGaps:true
+    }]},
+    options:{ responsive:true, maintainAspectRatio:false, animation:{duration:600},
+      plugins:{ legend:{display:false}, annotation:{annotations},
+        tooltip:{backgroundColor:'#111827',borderColor:'#1e2d42',borderWidth:1,bodyColor:'#7b90b0',
+          callbacks:{label:ctx=>`${label}: ${ctx.parsed.y?.toFixed(1)}`}}},
+      scales:{ x:{ticks:{color:'#3d5070',maxTicksLimit:8,font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{ticks:{color:'#3d5070',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}} }}
+  });
+}
+
+function buildBioCharts(d, prof) {
+  const distArr = d.records.map(r=>r.dist);
+
+  // Cadence
+  buildBioChart('ch-cadence', d.records.map(r=>r.cad), distArr, 'Cadence (spm)', '#10b981', {
+    refLines:[{val:170,label:'170 spm',color:'rgba(16,185,129,.4)'},{val:180,label:'180 spm',color:'rgba(16,185,129,.25)'}]
+  });
+  const avgCadRound = Math.round(d.avgCad||0);
+  const cb = document.getElementById('cadence-badge');
+  if (avgCadRound >= 174) { cb.textContent=`${avgCadRound} spm ✓`; cb.className='card-badge badge-good'; }
+  else if (avgCadRound >= 165) { cb.textContent=`${avgCadRound} spm`; cb.className='card-badge badge-warn'; }
+  else { cb.textContent=`${avgCadRound} spm — Low`; cb.className='card-badge badge-bad'; }
+
+  // GCT
+  if (d.hasGCT) {
+    buildBioChart('ch-gct', d.records.map(r=>r.gct), distArr, 'GCT (ms)', '#3b82f6', {
+      refLines:[{val:200,label:'Elite 200ms',color:'rgba(59,130,246,.4)'},{val:270,label:'High 270ms',color:'rgba(239,68,68,.3)'}]
+    });
+    const gb = document.getElementById('gct-badge');
+    const gAvg = Math.round(d.avgGCT||0);
+    if (gAvg<200) {gb.textContent=`${gAvg}ms — Elite`;gb.className='card-badge badge-good';}
+    else if(gAvg<250){gb.textContent=`${gAvg}ms — Good`;gb.className='card-badge badge-good';}
+    else{gb.textContent=`${gAvg}ms — High`;gb.className='card-badge badge-bad';}
+  } else { document.getElementById('gct-card').style.display='none'; }
+
+  // Vertical Oscillation
+  if (d.hasVO) {
+    buildBioChart('ch-vo', d.records.map(r=>r.vo), distArr, 'Vert Osc (cm)', '#8b5cf6', {
+      refLines:[{val:8,label:'Elite 8cm',color:'rgba(139,92,246,.5)'},{val:12,label:'High 12cm',color:'rgba(239,68,68,.3)'}]
+    });
+    const vob = document.getElementById('vo-badge');
+    const voA = d.avgVO||0;
+    if(voA<8){vob.textContent=`${voA.toFixed(1)}cm — Elite`;vob.className='card-badge badge-good';}
+    else if(voA<10){vob.textContent=`${voA.toFixed(1)}cm — Good`;vob.className='card-badge badge-good';}
+    else if(voA<12){vob.textContent=`${voA.toFixed(1)}cm — Moderate`;vob.className='card-badge badge-warn';}
+    else{vob.textContent=`${voA.toFixed(1)}cm — High`;vob.className='card-badge badge-bad';}
+  } else { document.getElementById('vo-card').style.display='none'; }
+
+  // Vertical Ratio
+  if (d.records.some(r=>r.vr)) {
+    buildBioChart('ch-vr', d.records.map(r=>r.vr), distArr, 'Vert Ratio (%)', '#f59e0b', {
+      refLines:[{val:6.5,label:'6.5% target',color:'rgba(245,158,11,.4)'}]
+    });
+    const vrb = document.getElementById('vr-badge');
+    const vrA = d.avgVR||0;
+    if(vrA<7){vrb.textContent=`${vrA.toFixed(1)}% — Efficient`;vrb.className='card-badge badge-good';}
+    else{vrb.textContent=`${vrA.toFixed(1)}% — Elevated`;vrb.className='card-badge badge-warn';}
+  } else { document.getElementById('vr-card').style.display='none'; }
+
+  // Stryd-specific
+  if (d.hasLSS || d.hasILR) {
+    document.getElementById('stryd-bio-row').style.display = 'grid';
+    if (d.hasLSS) {
+      buildBioChart('ch-lss', d.records.map(r=>r.lss), distArr, 'LSS (kN/m)', '#00d4ff', {});
+      const lb = document.getElementById('lss-badge');
+      lb.textContent='Stryd'; lb.className='card-badge badge-good';
+    }
+    if (d.hasILR) {
+      buildBioChart('ch-ilr', d.records.map(r=>r.ilr), distArr, 'ILR (BW/s)', '#ef4444', {});
+      const ib = document.getElementById('ilr-badge');
+      ib.textContent='Stryd'; ib.className='card-badge badge-good';
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  BIOMECHANICS COMPARE TABLE
+// ══════════════════════════════════════════════════════
+function buildBioCompare(d) {
+  const b = d.bioCompare;
+  function fmtBio(stat, key, unit, lowerIsBetter=false) {
+    const { v1, v3, chg } = stat;
+    if (!v1||!v3) return null;
+    const isGood = lowerIsBetter ? chg < 5 : chg > -5;
+    const trending = chg > 3 ? (lowerIsBetter?'trend-up':'') : chg < -3 ? (lowerIsBetter?'':'trend-dn-bad') : '';
+    const cls = Math.abs(chg||0) < 3 ? 'chg-neutral' : (isGood ? 'chg-good' : 'chg-bad');
+    return `<tr>
+      <td class="hl">${key}</td>
+      <td>${v1.toFixed(1)} ${unit}</td>
+      <td>${v3.toFixed(1)} ${unit}</td>
+      <td class="bio-tbl ${cls} ${trending}">${chg!=null?(chg>0?'+':'')+chg.toFixed(1)+'%':'--'}</td>
+    </tr>`;
+  }
+  const rows = [
+    fmtBio(b.spd,  'Avg Pace',          'km/h', false),
+    fmtBio(b.cad,  'Cadence',           'spm',  true),
+    fmtBio(b.gct,  'Ground Contact',    'ms',   true),
+    fmtBio(b.vo,   'Vert Oscillation',  'cm',   true),
+    fmtBio(b.vr,   'Vert Ratio',        '%',    true),
+    fmtBio(b.lss,  'Leg Stiffness',     'kN/m', false),
+    fmtBio(b.ilr,  'Impact Rate',       'BW/s', true),
+  ].filter(Boolean);
+
+  document.getElementById('bio-compare').innerHTML = `
+    <table class="bio-tbl">
+      <thead><tr><th>Metric</th><th>First Third</th><th>Last Third</th><th>Change</th></tr></thead>
+      <tbody>${rows.join('')}</tbody>
+    </table>
+    <div style="margin-top:12px;font-size:11px;color:var(--txt3);font-style:italic">
+      ↑ Red trends in GCT, VO, VR, ILR indicate fatigue-driven form breakdown &nbsp;|&nbsp; ↓ Red trend in Cadence or Leg Stiffness also indicates neuromuscular fatigue
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  DECOUPLING SECTION
+// ══════════════════════════════════════════════════════
+function buildDecouplingSection(d) {
+  const el = document.getElementById('decoupling-section');
+  const dc = d.decouplingPct;
+  const dcColor = dc == null ? 'var(--txt2)' : dc < 5 ? 'var(--green)' : dc < 10 ? 'var(--yellow)' : 'var(--red)';
+  const dcLabel = dc == null ? 'N/A' : dc < 5 ? 'Strong Coupling' : dc < 10 ? 'Moderate Drift' : 'Significant Drift';
+
+  el.innerHTML = `
+    <div class="decouple-grid">
+      <div class="decouple-box">
+        <h4>Aerobic Decoupling (Pa:HR)</h4>
+        <div class="dc-val" style="color:${dcColor}">${dc != null ? dc.toFixed(1)+'%' : 'N/A'}</div>
+        <div class="dc-sub">${dcLabel}</div>
+      </div>
+      <div class="decouple-box">
+        <h4>Pacing Split Ratio</h4>
+        <div class="dc-val" style="color:${d.splitRatio < 1.01?'var(--green)':d.splitRatio<1.06?'var(--yellow)':'var(--red)'}">${d.splitRatio.toFixed(3)}</div>
+        <div class="dc-sub">${d.splitRatio < 1.0 ? 'Negative split ✓' : d.splitRatio < 1.03 ? 'Even pacing ✓' : 'Positive split'}</div>
+      </div>
+    </div>
+    ${dc != null ? `
+    <div class="flag ${dc<5?'flag-good':dc<10?'flag-warn':'flag-bad'}" style="margin-bottom:0">
+      <div class="flag-icon">${dc<5?'✅':dc<10?'⚠️':'🔴'}</div>
+      <div class="flag-body">
+        <h4>Decoupling at ${dc.toFixed(1)}% — ${dcLabel}</h4>
+        <p>${dc < 5 ?
+          `Excellent aerobic coupling. Your HR tracked closely with pace throughout the session, indicating a strong aerobic base for this intensity. This is the target for aerobic development sessions.` :
+          dc < 10 ?
+          `Moderate drift — your HR climbed relative to pace across the session. Aerobic base is adequate but not yet robust at this pace. Continue building Z1–Z2 volume (80% of training) and test again in 4–6 weeks.` :
+          `Significant aerobic decoupling. HR rose meaningfully relative to pace, indicating the aerobic engine is a limiter at this intensity. Priority action: increase Z1–Z2 volume, enforce easy pacing on all aerobic sessions, and retest in 6 weeks. Avoid threshold work until decoupling drops below 5%.`
+        }</p>
+      </div>
+    </div>` : '<p style="color:var(--txt3);font-size:13px">Heart rate data required to calculate aerobic decoupling.</p>'}`;
+}
+
+// ══════════════════════════════════════════════════════
+//  COACHING REPORT ENGINE
+// ══════════════════════════════════════════════════════
+function buildCoachingReport(d, prof) {
+  const el = document.getElementById('coaching-report');
+  const flags = analyseSession(d, prof);
+  const sections = [];
+
+  // 1. Session Summary
+  const sessionType = flags.sessionType;
+  const avgHRPct = d.avgHR ? (d.avgHR/prof.lthr*100).toFixed(0) : null;
+  const avgPwrPct = d.avgPwr ? (d.avgPwr/prof.lt2w*100).toFixed(0) : null;
+  sections.push(`
+    <div class="coaching-block">
+      <h3>📊 Session Summary</h3>
+      <p>This was a <strong>${sessionType}</strong> covering ${formatDist(d.totalDist)} in ${formatTime(d.totalTime)} 
+      at an average pace of ${formatPace(d.avgSpdKmh)}/km.
+      ${avgHRPct ? `Average HR was ${Math.round(d.avgHR)} bpm (${avgHRPct}% of LTHR${d.avgHR>prof.lthr?', above threshold':''}). ` : ''}
+      ${avgPwrPct ? `Average power of ${Math.round(d.avgPwr)}W represents ${avgPwrPct}% of your LT2 threshold. ` : ''}
+      ${d.totalAscent > 50 ? `The course included ${Math.round(d.totalAscent)}m of elevation gain. ` : ''}</p>
+      ${flags.fatigueType ? `<p><strong>Fatigue Classification:</strong> ${flags.fatigueType}</p>` : ''}
+    </div>`);
+
+  // 2. Pacing
+  if (flags.pacingIssues.length > 0) {
+    sections.push(`
+      <div class="coaching-block">
+        <h3>⏱ Pacing Analysis</h3>
+        ${flags.pacingIssues.map(f=>`
+          <div class="flag ${f.cls}">
+            <div class="flag-icon">${f.icon}</div>
+            <div class="flag-body"><h4>${f.title}</h4><p>${f.body}</p></div>
+          </div>`).join('')}
+      </div>`);
+  }
+
+  // 3. Heart Rate & Aerobic Fitness
+  if (flags.hrInsights.length > 0) {
+    sections.push(`
+      <div class="coaching-block">
+        <h3>❤️ Heart Rate & Aerobic Fitness</h3>
+        ${flags.hrInsights.map(f=>`
+          <div class="flag ${f.cls}">
+            <div class="flag-icon">${f.icon}</div>
+            <div class="flag-body"><h4>${f.title}</h4><p>${f.body}</p></div>
+          </div>`).join('')}
+      </div>`);
+  }
+
+  // 4. Biomechanics
+  if (flags.bioInsights.length > 0) {
+    sections.push(`
+      <div class="coaching-block">
+        <h3>🔬 Biomechanics Insights</h3>
+        ${flags.bioInsights.map(f=>`
+          <div class="flag ${f.cls}">
+            <div class="flag-icon">${f.icon}</div>
+            <div class="flag-body"><h4>${f.title}</h4><p>${f.body}</p></div>
+          </div>`).join('')}
+      </div>`);
+  }
+
+  // 5. Improvement Pathways
+  if (flags.pathways.length > 0) {
+    sections.push(`
+      <div class="coaching-block">
+        <h3>🎯 Priority Improvement Pathways</h3>
+        <p>Based on this session's data, these are the highest-leverage areas to target for performance gains. Address them in order of priority:</p>
+        ${flags.pathways.map((pw,i) => `
+          <div class="pathway-box">
+            <div class="pw-label">Priority ${i+1} — ${pw.title}</div>
+            <p style="font-size:12px;color:var(--txt2);margin-bottom:10px;line-height:1.7">${pw.why}</p>
+            <div class="pw-items">
+              ${pw.actions.map((a,j)=>`<div class="pw-item"><span class="pw-num">${j+1}.</span><span>${a}</span></div>`).join('')}
+            </div>
+          </div>`).join('')}
+      </div>`);
+  }
+
+  // 6. What Went Well
+  if (flags.positives.length > 0) {
+    sections.push(`
+      <div class="coaching-block">
+        <h3>✅ What Went Well</h3>
+        <ul>${flags.positives.map(p=>`<li>${p}</li>`).join('')}</ul>
+      </div>`);
+  }
+
+  el.innerHTML = sections.join('');
+}
+
+// ── Analysis engine — rules-based insight generator ──
+function analyseSession(d, prof) {
+  const flags = {
+    sessionType: '', fatigueType: '', pacingIssues:[], hrInsights:[], bioInsights:[], pathways:[], positives:[]
+  };
+
+  // Session type classification
+  const avgPwrPct = d.avgPwr ? d.avgPwr/prof.lt2w*100 : null;
+  const avgHRPct  = d.avgHR  ? d.avgHR/prof.lthr*100  : null;
+  const mainPct   = avgPwrPct || avgHRPct;
+  if (!mainPct) flags.sessionType = 'Running Session';
+  else if (mainPct < 75) flags.sessionType = 'Easy Aerobic / Recovery Run';
+  else if (mainPct < 90) flags.sessionType = 'Aerobic Tempo Run';
+  else if (mainPct < 103) flags.sessionType = 'Threshold Run';
+  else if (mainPct < 120) flags.sessionType = 'VO₂Max / High-Intensity Run';
+  else flags.sessionType = 'Anaerobic / Race Effort';
+
+  // ── PACING FLAGS ──
+  const sr = d.splitRatio;
+  if (sr > 1.10) flags.pacingIssues.push({
+    cls:'flag-bad', icon:'🔴',
+    title: `Significant Positive Split — ${((sr-1)*100).toFixed(1)}% fade`,
+    body: `You ran ${((sr-1)*100).toFixed(1)}% slower in the second half. This is the most common and costly race execution error. The root cause is almost always starting faster than aerobic capacity can sustain. In training, enforce ceiling pace on all sessions — the goal is to finish your strongest repetition last, not first.`
+  });
+  else if (sr > 1.05) flags.pacingIssues.push({
+    cls:'flag-warn', icon:'⚠️',
+    title: `Moderate Positive Split — ${((sr-1)*100).toFixed(1)}% fade`,
+    body: `A slight fade in the second half. Acceptable in training, but targeted in racing. Work on enforcing conservative pacing in the first 20% of every run, and train with ceiling pace targets to develop discipline.`
+  });
+  else if (sr < 0.98) flags.positives.push(`Negative split executed — second half ${((1-sr)*100).toFixed(1)}% faster than first. Excellent pacing discipline.`);
+  else flags.positives.push(`Even pacing — split ratio of ${sr.toFixed(3)} shows excellent effort management throughout the session.`);
+
+  if (d.paceCV > 12) flags.pacingIssues.push({
+    cls:'flag-warn', icon:'⚠️',
+    title: `High Pace Variability — CV ${d.paceCV.toFixed(1)}%`,
+    body: `Significant pace fluctuation across the session (CV > 12%). This wastes energy through frequent acceleration/deceleration. Aim for a smooth, consistent effort particularly in aerobic and threshold sessions.`
+  });
+
+  // ── HR FLAGS ──
+  if (d.decouplingPct != null) {
+    if (d.decouplingPct > 10) flags.hrInsights.push({
+      cls:'flag-bad', icon:'🔴',
+      title: `Aerobic Decoupling ${d.decouplingPct.toFixed(1)}% — Aerobic Base Deficiency`,
+      body: `Your HR climbed significantly relative to pace during this session. This is the signature of an undertrained aerobic system at this intensity. The fix is increasing low-intensity (Z1–Z2) volume — 80% of total training time below LTHR. This won't feel hard enough, but it's exactly what the data demands. Expect 6–12 weeks before decoupling drops below 5% at this pace.`
+    });
+    else if (d.decouplingPct > 5) flags.hrInsights.push({
+      cls:'flag-warn', icon:'⚠️',
+      title: `Moderate Aerobic Decoupling — ${d.decouplingPct.toFixed(1)}%`,
+      body: `Some HR drift relative to pace. Aerobic base is developing but not yet robust for this intensity. Continue prioritising Z1–Z2 volume. Retest in 4 weeks.`
+    });
+    else flags.positives.push(`Aerobic coupling strong at ${d.decouplingPct.toFixed(1)}% — HR tracked closely with pace, indicating a well-conditioned aerobic engine.`);
+  }
+
+  // HR zone distribution insights
+  if (d.hrZones) {
+    const z3z4pct = (d.hrZones[2].pct + d.hrZones[3].pct);
+    if (z3z4pct > 40 && flags.sessionType.includes('Easy')) {
+      flags.hrInsights.push({
+        cls:'flag-warn', icon:'⚠️',
+        title: `"Easy" Session Not Easy Enough — ${z3z4pct.toFixed(0)}% in Z3/Z4`,
+        body: `Over ${z3z4pct.toFixed(0)}% of this session was in Zones 3–4 on what appears to be an aerobic session. True aerobic development requires Z1–Z2 (below LTHR). Use walk-run protocols if necessary to stay in zone — the physiological adaptations require it.`
+      });
+    }
+  }
+
+  // ── BIOMECHANICS FLAGS ──
+  const avgCad = d.avgCad || 0;
+  if (avgCad < 160 && avgCad > 0) flags.bioInsights.push({
+    cls:'flag-bad', icon:'🔴',
+    title: `Low Cadence — ${Math.round(avgCad)} spm (Target: 170–180+ spm)`,
+    body: `A cadence below 160 spm strongly suggests overstriding — foot landing ahead of centre of mass, generating braking forces with every step. This increases joint loading, slows forward velocity, and accelerates fatigue. Increase by 5–8% incrementally over 4–6 weeks. Never force the full change at once.`
+  });
+  else if (avgCad < 170 && avgCad > 0) flags.bioInsights.push({
+    cls:'flag-warn', icon:'⚠️',
+    title: `Cadence Slightly Low — ${Math.round(avgCad)} spm`,
+    body: `In the acceptable range but below the efficiency target of 170–180 spm. A 5% increase could reduce knee loading by up to 20%. Use a metronome app for 10-minute cadence blocks during easy runs.`
+  });
+  else if (avgCad >= 170) flags.positives.push(`Good cadence at ${Math.round(avgCad)} spm — within the efficient 170–180+ range.`);
+
+  if (d.avgVO != null && d.avgVO > 10) flags.bioInsights.push({
+    cls: d.avgVO > 12 ? 'flag-bad' : 'flag-warn', icon: d.avgVO > 12 ? '🔴' : '⚠️',
+    title: `Elevated Vertical Oscillation — ${d.avgVO.toFixed(1)} cm (Elite target: <8 cm)`,
+    body: `At ${d.avgVO.toFixed(1)}cm VO, you're fighting gravity on every stride. At 180 spm, this means roughly ${(d.avgVO * 2 * 180 / 100).toFixed(0)} meters of vertical movement per minute — all wasted energy. Focus on forward lean from the ankles, low and quiet foot strike, and hip extension rather than knee drive. Core stability work (planks, dead bugs, single-leg exercises) will address the root cause.`
+  });
+  else if (d.avgVO != null && d.avgVO <= 8) flags.positives.push(`Excellent vertical oscillation at ${d.avgVO.toFixed(1)} cm — efficient forward mechanics.`);
+
+  if (d.hasGCT && d.avgGCT > 270) flags.bioInsights.push({
+    cls:'flag-warn', icon:'⚠️',
+    title: `Ground Contact Time High — ${Math.round(d.avgGCT)} ms (Elite target: <200 ms)`,
+    body: `Spending more time on the ground than necessary. Aim for quick, elastic foot strike — think "hot coals" not "stomping". Neuromuscular drills (A-skips, B-skips, high knees, straight-leg bounds) train the nervous system to apply force rapidly and leave the ground quickly.`
+  });
+  else if (d.hasGCT && d.avgGCT < 200) flags.positives.push(`Ground contact time excellent at ${Math.round(d.avgGCT)} ms — near-elite ground contact efficiency.`);
+
+  // Biomechanical fatigue detection
+  const gctChg = d.bioCompare.gct.chg;
+  const voChg  = d.bioCompare.vo.chg;
+  const cadChg = d.bioCompare.cad.chg;
+  const lssChg = d.bioCompare.lss.chg;
+
+  if (gctChg > 10 || voChg > 10) {
+    const hrDrift  = d.decouplingPct != null && d.decouplingPct > 5;
+    const pwrDrop  = d.bioCompare.spd.chg < -5;
+    let fatigueType = '';
+    if (hrDrift && pwrDrop) fatigueType = 'Combined cardiovascular and neuromuscular fatigue — both aerobic capacity and muscular endurance are limiting factors';
+    else if (hrDrift) fatigueType = 'Primarily cardiovascular/aerobic fatigue — HR rose relative to pace without major form breakdown, indicating aerobic system is the limiter';
+    else if (pwrDrop) fatigueType = 'Primarily neuromuscular/muscular fatigue — form deteriorated without major HR drift, indicating muscular endurance is the limiter';
+    else fatigueType = 'Mechanical fatigue pattern — form metrics degraded without major aerobic strain';
+    flags.fatigueType = fatigueType;
+
+    flags.bioInsights.push({
+      cls:'flag-warn', icon:'⚠️',
+      title: `Biomechanical Fatigue Detected in Final Third`,
+      body: `${gctChg > 10 ? `GCT increased ${gctChg.toFixed(0)}% from first to last third. ` : ''}${voChg > 10 ? `Vertical oscillation rose ${voChg.toFixed(0)}%. ` : ''}${cadChg < -5 ? `Cadence dropped ${Math.abs(cadChg).toFixed(0)}%. ` : ''}This cascade of form degradation is the neuromuscular fatigue signature. The body is losing elastic energy return as the session progresses. ${fatigueType.split('—')[0].trim()} is the primary cause.`
+    });
+  }
+
+  if (d.hasStryd && d.avgLSS != null && d.bioCompare.lss.chg < -8) flags.bioInsights.push({
+    cls:'flag-warn', icon:'⚠️',
+    title: `Leg Spring Stiffness Declining — ${d.bioCompare.lss.chg.toFixed(0)}% drop first to last third`,
+    body: `LSS reflects elastic energy storage in the leg spring mechanism. A significant drop indicates neuromuscular fatigue — the legs are less able to store and return energy elastically. Targeted plyometric training, hill sprints, and adequate recovery between hard sessions will improve LSS endurance.`
+  });
+
+  // ── PRIORITY IMPROVEMENT PATHWAYS ──
+  // Rank by severity and impact
+  const issues = [];
+  if (d.decouplingPct > 10) issues.push({ priority: 1, title: 'Build Aerobic Base (Z1–Z2 Volume)',
+    why: `Aerobic decoupling of ${d.decouplingPct.toFixed(1)}% is the highest-priority indicator. Your aerobic engine is the primary limiter. Improving this will improve every metric — pace at all zones, recovery, and biomechanical endurance.`,
+    actions: [
+      `Shift 80% of weekly training volume to Z1–Z2 (below ${Math.round(prof.lthr * 0.89)} bpm HR)`,
+      `Use walk-run intervals for any running that spikes HR above Z2`,
+      `Build Z2 run volume by 5–8% per week maximum`,
+      `Retest with a 45-min Z2 session in 6 weeks — target <5% decoupling`,
+      `Add 1 long aerobic run per week (60–90 min at Z1–Z2 effort) as foundation`
+    ]});
+  if (sr > 1.05) issues.push({ priority: 2, title: 'Pacing Discipline',
+    why: `The ${((sr-1)*100).toFixed(1)}% positive split indicates the ability to judge sustainable effort needs development. This single change can improve race times by 2–5% immediately with no fitness improvement required.`,
+    actions: [
+      `Enforce ceiling pace on every session — never exceed the prescribed target in the first third`,
+      `On every threshold session, the first rep/mile must be the slowest`,
+      `Brick run discipline: commit to a target pace off the bike that is 10–15 sec/km slower than standalone run pace`,
+      `Use a 30/30 rule: first 30% of run at Z2 regardless of how good you feel`,
+      `Practice "negative-split training" — last mile faster than first in every aerobic run`
+    ]});
+  if (avgCad < 168 && avgCad > 0) issues.push({ priority: 3, title: 'Cadence Optimisation',
+    why: `At ${Math.round(avgCad)} spm, there is meaningful efficiency to gain from cadence improvement. Higher cadence reduces overstriding, decreases joint loading, and improves running economy.`,
+    actions: [
+      `Current cadence: ${Math.round(avgCad)} spm. Target: ${Math.round(avgCad * 1.06)} spm over 6 weeks`,
+      `Week 1–2: Use metronome app for 10-min blocks at target cadence during easy runs only`,
+      `Week 3–4: Extend to 20-min blocks. Week 5–6: Full runs at new cadence`,
+      `Never increase by more than 10% — this causes injury`,
+      `Running drills 2x/week: A-skips, B-skips, high knees, butt kicks (3×30m each)`
+    ]});
+  if (d.avgVO && d.avgVO > 10) issues.push({ priority: 4, title: 'Reduce Vertical Oscillation',
+    why: `At ${d.avgVO.toFixed(1)}cm vertical oscillation, significant forward propulsion energy is being wasted. Reducing to below 8cm improves running economy by 2–4% and reduces fatigue rate.`,
+    actions: [
+      `Core stability priority: dead bugs, planks, Copenhagen adductions, single-leg RDLs — 3x/week`,
+      `Run with a forward lean from the ankles (not the hips) — "falling forward" cue`,
+      `Drive hips forward, not knees upward — low, fast, horizontal foot strike`,
+      `Uphill running intervals develop forward drive mechanics naturally`,
+      `Video analysis every 4 weeks to track VO measurement changes`
+    ]});
+  if (d.hasGCT && d.avgGCT > 250) issues.push({ priority: 4, title: 'Ground Contact Time & Elastic Stiffness',
+    why: `GCT of ${Math.round(d.avgGCT)}ms indicates the legs are spending too long on the ground. Plyometric and stiffness training will improve elastic energy return and reduce GCT.`,
+    actions: [
+      `Plyometric training 2x/week: pogo hops, box jumps, depth jumps (progress over 6 weeks)`,
+      `Running drills: straight-leg bounding, ankling, fast feet`,
+      `"Hot coals" mental cue — quick, reactive foot strike`,
+      `Hill sprints 1x/week (6–8 × 10–15 sec) develop leg spring stiffness naturally`,
+      `Ensure adequate recovery between sessions — LSS declines sharply when under-recovered`
+    ]});
+
+  issues.sort((a,b)=>a.priority-b.priority).slice(0,4).forEach(i => flags.pathways.push(i));
+
+  return flags;
+}
+
+// ══════════════════════════════════════════════════════
+//  UI HELPERS
+// ══════════════════════════════════════════════════════
+function showLoading() { document.getElementById('loading').style.display='flex'; }
+function hideLoading() { document.getElementById('loading').style.display='none'; }
+
+function resetReport() {
+  document.getElementById('report-section').style.display='none';
+  document.getElementById('upload-section').style.display='flex';
+  document.getElementById('file-input').value='';
+  Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});
+  charts={};
+}
+
+function toggleProfile() {
+  const body = document.getElementById('profile-body');
+  const icon = document.getElementById('profile-toggle');
+  body.classList.toggle('open');
+  icon.textContent = body.classList.contains('open') ? '▲' : '▼';
+}
+
+// Chart.js global defaults
+Chart.defaults.color = '#7b90b0';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+Chart.defaults.font.family = "'Barlow', sans-serif";
+
+// Register annotation plugin
+if (window.ChartAnnotation) Chart.register(ChartAnnotation);
+else if (window['chartjs-plugin-annotation']) Chart.register(window['chartjs-plugin-annotation']);
+</script>
+</body>
+</html>
