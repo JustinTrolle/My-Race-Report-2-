@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Barlow:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 <style>
 :root {
   --bg: #070b14;
@@ -238,7 +239,7 @@ canvas{display:block}
   </div>
 </header>
 
-<input type="file" id="file-input" accept=".fit" onchange="handleFile(event)">
+<input type="file" id="file-input" accept=".fit,.gz,.fit.gz" onchange="handleFile(event)">
 
 <main class="main">
 
@@ -257,12 +258,12 @@ canvas{display:block}
     ondragleave="handleDragLeave(event)"
     ondrop="handleDrop(event)">
     <span class="upload-icon">🏃</span>
-    <h3>Drop your .FIT file here</h3>
-    <p>Or click to browse your files</p>
+    <h3>Drop your FIT file here</h3>
+    <p>Supports <strong>.fit</strong> and <strong>.fit.gz</strong> — works with Garmin Connect, TrainingPeaks, Stryd, Polar, Coros</p>
     <div class="upload-support">
-      <span class="chip">GARMIN</span><span class="chip">STRYD</span>
-      <span class="chip">POLAR</span><span class="chip">COROS</span>
-      <span class="chip">SUUNTO</span>
+      <span class="chip">GARMIN</span><span class="chip">TRAININGPEAKS</span>
+      <span class="chip">STRYD</span><span class="chip">POLAR</span>
+      <span class="chip">COROS</span>
     </div>
   </div>
 
@@ -571,13 +572,34 @@ function handleDragLeave()  { document.getElementById('drop-zone').classList.rem
 function handleDrop(e)      { e.preventDefault(); handleDragLeave(); const f = e.dataTransfer.files[0]; if (f) processFile(f); }
 function handleFile(e)      { const f = e.target.files[0]; if (f) processFile(f); }
 
+function isGzipped(buffer) {
+  const bytes = new Uint8Array(buffer, 0, 2);
+  return bytes[0] === 0x1f && bytes[1] === 0x8b;
+}
+
 function processFile(file) {
-  if (!file.name.toLowerCase().endsWith('.fit')) {
-    alert('Please upload a .fit file from your GPS device.'); return;
+  const name = file.name.toLowerCase();
+  const validExt = name.endsWith('.fit') || name.endsWith('.gz') || name.endsWith('.fit.gz');
+  if (!validExt) {
+    alert('Please upload a .fit or .fit.gz file from your GPS device or TrainingPeaks.'); return;
   }
   showLoading();
   const reader = new FileReader();
-  reader.onload = e => parseFIT(e.target.result, file.name);
+  reader.onload = e => {
+    const raw = e.target.result;
+    try {
+      if (isGzipped(raw)) {
+        // Decompress gzip (TrainingPeaks / Garmin Connect export format)
+        const decompressed = pako.inflate(new Uint8Array(raw));
+        parseFIT(decompressed.buffer, file.name);
+      } else {
+        parseFIT(raw, file.name);
+      }
+    } catch(err) {
+      hideLoading();
+      alert('Could not decompress file: ' + err.message + '\n\nMake sure this is a valid .fit or .fit.gz file.');
+    }
+  };
   reader.onerror = () => { hideLoading(); alert('Could not read file.'); };
   reader.readAsArrayBuffer(file);
 }
