@@ -239,7 +239,7 @@ canvas{display:block}
   </div>
 </header>
 
-<input type="file" id="file-input" accept=".fit,.gz,.fit.gz" onchange="handleFile(event)">
+<input type="file" id="file-input" accept=".fit,.gz,.fit.gz,application/gzip,application/x-gzip,application/octet-stream" onchange="handleFile(event)">
 
 <main class="main">
 
@@ -577,30 +577,41 @@ function isGzipped(buffer) {
   return bytes[0] === 0x1f && bytes[1] === 0x8b;
 }
 
+function isFitFile(buffer) {
+  // FIT files start with a header: byte 8-11 = ASCII ".FIT"
+  try {
+    const bytes = new Uint8Array(buffer, 8, 4);
+    return bytes[0] === 46 && bytes[1] === 70 && bytes[2] === 73 && bytes[3] === 84; // ".FIT"
+  } catch(e) { return false; }
+}
+
 function processFile(file) {
-  const name = file.name.toLowerCase();
-  const validExt = name.endsWith('.fit') || name.endsWith('.gz') || name.endsWith('.fit.gz');
-  if (!validExt) {
-    alert('Please upload a .fit or .fit.gz file from your GPS device or TrainingPeaks.'); return;
-  }
+  // Accept any file — magic bytes determine handling, not extension
+  // (browser file pickers often mangle .gz MIME types across OS/browser combos)
   showLoading();
   const reader = new FileReader();
   reader.onload = e => {
     const raw = e.target.result;
     try {
       if (isGzipped(raw)) {
-        // Decompress gzip (TrainingPeaks / Garmin Connect export format)
-        const decompressed = pako.inflate(new Uint8Array(raw));
-        parseFIT(decompressed.buffer, file.name);
-      } else {
+        // Decompress gzip — TrainingPeaks & Garmin Connect export format
+        if (typeof pako === 'undefined') throw new Error('Decompression library (pako) not loaded. Check internet connection.');
+        const inflated = pako.inflate(new Uint8Array(raw));
+        // Slice to exact byte range — pako may return a view into a larger shared buffer
+        const cleanBuffer = inflated.buffer.slice(inflated.byteOffset, inflated.byteOffset + inflated.byteLength);
+        parseFIT(cleanBuffer, file.name);
+      } else if (isFitFile(raw) || file.name.toLowerCase().endsWith('.fit')) {
         parseFIT(raw, file.name);
+      } else {
+        hideLoading();
+        alert('File not recognised.\n\nSupported formats:\n• .fit (raw FIT file)\n• .fit.gz or .gz (gzip-compressed FIT — from TrainingPeaks, Garmin Connect)\n\nThis file does not appear to be either format.');
       }
     } catch(err) {
       hideLoading();
-      alert('Could not decompress file: ' + err.message + '\n\nMake sure this is a valid .fit or .fit.gz file.');
+      alert('Error processing file: ' + err.message + '\n\nMake sure this is a valid .fit or .fit.gz file.');
     }
   };
-  reader.onerror = () => { hideLoading(); alert('Could not read file.'); };
+  reader.onerror = () => { hideLoading(); alert('Could not read file — check the file is not corrupted.'); };
   reader.readAsArrayBuffer(file);
 }
 
