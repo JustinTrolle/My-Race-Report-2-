@@ -619,7 +619,7 @@ function parseFIT(buffer, filename) {
   if (typeof FitParser === 'undefined') {
     hideLoading(); alert('FIT parser library failed to load. Please check your internet connection.'); return;
   }
-  const parser = new FitParser({ force:true, speedUnit:'km/h', lengthUnit:'km', temperatureUnit:'celsius', elapsedRecordField:true, mode:'cascade' });
+  const parser = new FitParser({ force:true, speedUnit:'km/h', lengthUnit:'km', temperatureUnit:'celsius', elapsedRecordField:true, mode:'list' });
   parser.parse(buffer, (error, data) => {
     hideLoading();
     if (error) { alert('Error parsing FIT file: '+error); return; }
@@ -674,8 +674,8 @@ function extractData(data) {
   // Session stats
   const totalDist = session.total_distance || (records.length ? records[records.length-1].dist : 0);
   const totalTime = session.total_elapsed_time || session.total_timer_time || 0;
-  const avgSpdKmh = session.avg_speed || session.enhanced_avg_speed || avg(records.map(r=>r.spd));
-  const maxSpdKmh = session.max_speed || session.enhanced_max_speed || Math.max(...records.map(r=>r.spd));
+  const avgSpdKmh = session.enhanced_avg_speed || session.avg_speed || avg(records.map(r=>r.spd));
+  const maxSpdKmh = session.enhanced_max_speed || session.max_speed || Math.max(...records.map(r=>r.spd));
   const avgHR     = hasHR  ? (session.avg_heart_rate || avg(records.map(r=>r.hr))) : null;
   const maxHR     = hasHR  ? (session.max_heart_rate || Math.max(...records.filter(r=>r.hr).map(r=>r.hr))) : null;
   const avgPwr    = hasPwr ? (session.avg_power || avg(records.map(r=>r.pwr))) : null;
